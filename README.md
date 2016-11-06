@@ -42,4 +42,4 @@ The code for QtQuick Controls 2.0 makes used of the KDE Breeze Icons Theme (http
 
 > The Breeze Icon Theme in icons/
 
-> Copyright (C) 2014 Uri Herrera <uri_herrera@nitrux.in> and others
+> Copyright (C) 2014 Uri Herrera and others
