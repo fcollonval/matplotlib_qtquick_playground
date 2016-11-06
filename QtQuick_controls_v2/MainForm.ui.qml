@@ -73,19 +73,12 @@ Item {
                     clip: true
                     
                     model: dataModel
-                    delegate: RowLayout {
-                        CheckBox {
-                            checked : false;                            
-                            onClicked: {
-                                selected = checked;
-                            }
+                    delegate: CheckBox {
+                        checked : false;
+                        text: name
+                        onClicked: {
+                            selected = checked;
                         }
-
-                        Label {
-                            text: name
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                        spacing: 10
                     }
                 }
 
