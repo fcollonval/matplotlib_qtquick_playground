@@ -6,7 +6,8 @@ Item {
     height: 320 
 
     FigureCanvas {
-        id: mplView        
+        id: mplView
+        objectName : "figure"
         anchors.fill: parent        
     }
 }

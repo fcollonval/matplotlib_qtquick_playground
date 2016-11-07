@@ -18,7 +18,7 @@ License: MIT License
 Last modified: 2016-11-06
 """
 import sys, os, csv
-from PyQt5.QtCore import Qt, QUrl
+from PyQt5.QtCore import Qt, QObject, QUrl
 from PyQt5.QtGui import QGuiApplication
 from PyQt5.QtQml import qmlRegisterType
 from PyQt5.QtQuick import QQuickView
@@ -47,6 +47,13 @@ def main():
     view.setResizeMode(QQuickView.SizeRootObjectToView)
     view.setSource(QUrl('main.qml'))
     view.show()
+    
+    win = view.rootObject()
+    fig = win.findChild(QObject, "figure").getFigure()
+    print(fig)
+    ax = fig.add_subplot(111)
+    x = np.linspace(-5, 5)
+    ax.plot(x, np.sin(x))
     
     rc = app.exec_()
     # There is some trouble arising when deleting all the objects here

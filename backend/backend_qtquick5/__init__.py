@@ -1,2 +1,2 @@
 
-from .backend_qtquick5agg import FigureCanvasQTAgg
+from .backend_qquick5agg import FigureCanvasQTAgg
