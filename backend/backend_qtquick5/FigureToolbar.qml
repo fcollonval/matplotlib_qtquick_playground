@@ -68,6 +68,7 @@ Item{
                         source: "image://mplIcons/home"
                     }
                     onClicked: {
+                        mplView.home()
                     }
                 }     
                 
@@ -79,6 +80,7 @@ Item{
                         source: "image://mplIcons/back"
                     }
                     onClicked: {
+                        mplView.back()
                     }
                 }     
                 
@@ -91,6 +93,7 @@ Item{
                         source: "image://mplIcons/forward"
                     }
                     onClicked: {
+                        mplView.forward()
                     }
                 }     
 

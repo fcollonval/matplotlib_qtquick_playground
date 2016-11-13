@@ -523,13 +523,13 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
         # """Display a message on toolbar or in status bar"""
         # self.message = s
 
-    # @QtCore.pyqtSlot()
-    # def back(self, *args):
-        # """move back up the view lim stack"""
-        # self._views.back()
-        # self._positions.back()
-        # self.set_history_buttons()
-        # self._update_view()
+    @QtCore.pyqtSlot()
+    def back(self, *args):
+        """move back up the view lim stack"""
+        self._views.back()
+        self._positions.back()
+        self.set_history_buttons()
+        self._update_view()
 
     def dynamic_update(self):
         self.canvas.draw_idle()
@@ -557,21 +557,21 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
         # # dia.setWindowIcon(QtGui.QIcon(image))
         # # dia.exec_()
 
-    # @QtCore.pyqtSlot()
-    # def forward(self, *args):
-        # """Move forward in the view lim stack"""
-        # self._views.forward()
-        # self._positions.forward()
-        # self.set_history_buttons()
-        # self._update_view()
+    @QtCore.pyqtSlot()
+    def forward(self, *args):
+        """Move forward in the view lim stack"""
+        self._views.forward()
+        self._positions.forward()
+        self.set_history_buttons()
+        self._update_view()
 
-    # @QtCore.pyqtSlot()
-    # def home(self, *args):
-        # """Restore the original view"""
-        # self._views.home()
-        # self._positions.home()
-        # self.set_history_buttons()
-        # self._update_view()
+    @QtCore.pyqtSlot()
+    def home(self, *args):
+        """Restore the original view"""
+        self._views.home()
+        self._positions.home()
+        self.set_history_buttons()
+        self._update_view()
 
     # # def _init_toolbar(self):
         # # """
@@ -869,24 +869,24 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
                 # # loc.refresh()
         # # self.canvas.draw_idle()
 
-    # def _update_view(self):
-        # """Update the viewlim and position from the view and
-        # position stack for each axes
-        # """
+    def _update_view(self):
+        """Update the viewlim and position from the view and
+        position stack for each axes
+        """
 
-        # views = self._views()
-        # if views is None:
-            # return
-        # pos = self._positions()
-        # if pos is None:
-            # return
-        # for i, a in enumerate(self.canvas.figure.get_axes()):
-            # a._set_view(views[i])
-            # # Restore both the original and modified positions
-            # a.set_position(pos[i][0], 'original')
-            # a.set_position(pos[i][1], 'active')
+        views = self._views()
+        if views is None:
+            return
+        pos = self._positions()
+        if pos is None:
+            return
+        for i, a in enumerate(self.canvas.figure.get_axes()):
+            a._set_view(views[i])
+            # Restore both the original and modified positions
+            a.set_position(pos[i][0], 'original')
+            a.set_position(pos[i][1], 'active')
 
-        # self.canvas.draw_idle()
+        self.canvas.draw_idle()
 
     def set_cursor(self, cursor):
         """
