@@ -62,7 +62,6 @@ Item{
                 
                 ToolButton {
                     id : home
-                    width: height
                     contentItem: Image{
                         fillMode: Image.PreserveAspectFit
                         source: "image://mplIcons/home"
@@ -74,7 +73,6 @@ Item{
                 
                 ToolButton {
                     id : back
-                    width: height
                     contentItem: Image{
                         fillMode: Image.PreserveAspectFit
                         source: "image://mplIcons/back"
@@ -86,7 +84,6 @@ Item{
                 
                 ToolButton {
                     id : forward
-                    width: height
                     
                     contentItem: Image{
                         fillMode: Image.PreserveAspectFit
@@ -102,15 +99,20 @@ Item{
                     text : "|"
                 }
                 
+                ButtonGroup {
+                // Gather pan and zoom tools to make them auto-exclusive
+                    id: pan_zoom
+                }
+                
                 ToolButton {
                     id : pan
-                    width: height
                     
                     contentItem: Image{
                         fillMode: Image.PreserveAspectFit
                         source: "image://mplIcons/move"
                     }
                     
+                    ButtonGroup.group: pan_zoom
                     checkable: true
                     
                     onClicked: {
@@ -120,16 +122,17 @@ Item{
                 
                 ToolButton {
                     id : zoom
-                    width: height
                     
                     contentItem: Image{
                         fillMode: Image.PreserveAspectFit
                         source: "image://mplIcons/zoom_to_rect"
                     }
                     
+                    ButtonGroup.group: pan_zoom
                     checkable: true
                     
                     onClicked: {
+                        mplView.zoom()
                     }
                 }   
 
@@ -139,7 +142,6 @@ Item{
                 
                 ToolButton {
                     id : subplots
-                    width: height
                     contentItem: Image{
                         fillMode: Image.PreserveAspectFit
                         source: "image://mplIcons/subplots"
@@ -150,7 +152,6 @@ Item{
                 
                 ToolButton {
                     id : save
-                    width: height
                     contentItem: Image{
                         fillMode: Image.PreserveAspectFit
                         source: "image://mplIcons/filesave"
