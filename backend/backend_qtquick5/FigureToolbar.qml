@@ -5,8 +5,8 @@ import Qt.labs.controls 1.0
 import QtQuick.Dialogs 1.2
 
 Item{           
-    width: 480
-    height: 320 + 32
+    width: 760
+    height: 480
 
     ColumnLayout {
         spacing : 0
@@ -110,7 +110,7 @@ Item{
                     checkable: true
                     
                     onClicked: {
-//                        mplView.pan()
+                        mplView.pan()
                     }
                 }     
                 

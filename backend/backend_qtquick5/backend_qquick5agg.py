@@ -81,6 +81,9 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
         #
         self.coordinates = coordinates
         self._actions = {}
+        
+        # reference holder for subplots_adjust window
+        self.adj_window = None
         #
         # Attributes from NavigationToolbar2
         #
@@ -106,7 +109,7 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
                                      # at start
 
         self.mode = ''  # a mode string for the status bar
-        # self.set_history_buttons()
+        self.set_history_buttons()
     
     @QtCore.pyqtProperty('QString', notify=messageChanged)
     def message(self):
@@ -333,13 +336,15 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
         # if DEBUG: 
             # print('hover move')
 
-    # Replace by hoverMoveEvent in QtQuick
-    # def mouseMoveEvent(self, event):
-        # x = event.x()
-        # # flipy so y=0 is bottom of canvas
-        # y = self.figure.bbox.height - event.y()
-        # FigureCanvasAgg.motion_notify_event(self, x, y, guiEvent=event)
-        # if DEBUG: print('mouse move')
+    # hoverMoveEvent kicks in when no mouse buttons are pressed
+    # otherwise mouseMoveEvent are emitted
+    def mouseMoveEvent(self, event):
+        x = event.x()
+        # flipy so y=0 is bottom of canvas
+        y = self.figure.bbox.height - event.y()
+        FigureCanvasAgg.motion_notify_event(self, x, y, guiEvent=event)
+        # if DEBUG: 
+            # print('mouse move')
 
     def mouse_move(self, event):
         self._set_cursor(event)
@@ -526,8 +531,8 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
         # self.set_history_buttons()
         # self._update_view()
 
-    # def dynamic_update(self):
-        # self.canvas.draw_idle()
+    def dynamic_update(self):
+        self.canvas.draw_idle()
 
     # def draw_rubberband(self, event, x0, y0, x1, y1):
         # """Draw a rectangle rubberband to indicate zoom limits"""
@@ -606,71 +611,71 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
 
                 self._lastCursor = cursors.MOVE
 
-    # @QtCore.pyqtSlot()
-    # def pan(self, *args):
-        # """Activate the pan/zoom tool. pan with left button, zoom with right"""
-        # # set the pointer icon and button press funcs to the
-        # # appropriate callbacks
+    @QtCore.pyqtSlot()
+    def pan(self, *args):
+        """Activate the pan/zoom tool. pan with left button, zoom with right"""
+        # set the pointer icon and button press funcs to the
+        # appropriate callbacks
 
-        # if self._active == 'PAN':
-            # self._active = None
-        # else:
-            # self._active = 'PAN'
-        # if self._idPress is not None:
-            # self._idPress = self.canvas.mpl_disconnect(self._idPress)
-            # self.mode = ''
+        if self._active == 'PAN':
+            self._active = None
+        else:
+            self._active = 'PAN'
+        if self._idPress is not None:
+            self._idPress = self.canvas.mpl_disconnect(self._idPress)
+            self.mode = ''
 
-        # if self._idRelease is not None:
-            # self._idRelease = self.canvas.mpl_disconnect(self._idRelease)
-            # self.mode = ''
+        if self._idRelease is not None:
+            self._idRelease = self.canvas.mpl_disconnect(self._idRelease)
+            self.mode = ''
 
-        # if self._active:
-            # self._idPress = self.canvas.mpl_connect(
-                # 'button_press_event', self.press_pan)
-            # self._idRelease = self.canvas.mpl_connect(
-                # 'button_release_event', self.release_pan)
-            # self.mode = 'pan/zoom'
-            # self.canvas.widgetlock(self)
-        # else:
-            # self.canvas.widgetlock.release(self)
+        if self._active:
+            self._idPress = self.canvas.mpl_connect(
+                'button_press_event', self.press_pan)
+            self._idRelease = self.canvas.mpl_connect(
+                'button_release_event', self.release_pan)
+            self.mode = 'pan/zoom'
+            self.canvas.widgetlock(self)
+        else:
+            self.canvas.widgetlock.release(self)
 
-        # for a in self.canvas.figure.get_axes():
-            # a.set_navigate_mode(self._active)
+        for a in self.canvas.figure.get_axes():
+            a.set_navigate_mode(self._active)
 
-        # self.message = self.mode
+        self.message = self.mode
 
-    # def press(self, event):
-        # """Called whenver a mouse button is pressed."""
-        # pass
+    def press(self, event):
+        """Called whenever a mouse button is pressed."""
+        pass
 
-    # def press_pan(self, event):
-        # """the press mouse button in pan/zoom mode callback"""
+    def press_pan(self, event):
+        """the press mouse button in pan/zoom mode callback"""
 
-        # if event.button == 1:
-            # self._button_pressed = 1
-        # elif event.button == 3:
-            # self._button_pressed = 3
-        # else:
-            # self._button_pressed = None
-            # return
+        if event.button == 1:
+            self._button_pressed = 1
+        elif event.button == 3:
+            self._button_pressed = 3
+        else:
+            self._button_pressed = None
+            return
 
-        # x, y = event.x, event.y
+        x, y = event.x, event.y
 
-        # # push the current view to define home if stack is empty
-        # if self._views.empty():
-            # self.push_current()
+        # push the current view to define home if stack is empty
+        if self._views.empty():
+            self.push_current()
 
-        # self._xypress = []
-        # for i, a in enumerate(self.canvas.figure.get_axes()):
-            # if (x is not None and y is not None and a.in_axes(event) and
-                    # a.get_navigate() and a.can_pan()):
-                # a.start_pan(x, y, event.button)
-                # self._xypress.append((a, i))
-                # self.canvas.mpl_disconnect(self._idDrag)
-                # self._idDrag = self.canvas.mpl_connect('motion_notify_event',
-                                                       # self.drag_pan)
+        self._xypress = []
+        for i, a in enumerate(self.canvas.figure.get_axes()):
+            if (x is not None and y is not None and a.in_axes(event) and
+                    a.get_navigate() and a.can_pan()):
+                a.start_pan(x, y, event.button)
+                self._xypress.append((a, i))
+                self.canvas.mpl_disconnect(self._idDrag)
+                self._idDrag = self.canvas.mpl_connect('motion_notify_event',
+                                                       self.drag_pan)
 
-        # self.press(event)
+        self.press(event)
 
     # def press_zoom(self, event):
         # """the press mouse button in zoom to rect mode callback"""
@@ -725,50 +730,50 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
         # self._zoom_mode = None
         # self.mouse_move(event)
 
-    # def push_current(self):
-        # """push the current view limits and position onto the stack"""
-        # views = []
-        # pos = []
-        # for a in self.canvas.figure.get_axes():
-            # views.append(a._get_view())
-            # # Store both the original and modified positions
-            # pos.append((
-                # a.get_position(True).frozen(),
-                # a.get_position().frozen()))
-        # self._views.push(views)
-        # self._positions.push(pos)
-        # self.set_history_buttons()
+    def push_current(self):
+        """push the current view limits and position onto the stack"""
+        views = []
+        pos = []
+        for a in self.canvas.figure.get_axes():
+            views.append(a._get_view())
+            # Store both the original and modified positions
+            pos.append((
+                a.get_position(True).frozen(),
+                a.get_position().frozen()))
+        self._views.push(views)
+        self._positions.push(pos)
+        self.set_history_buttons()
 
-    # def release(self, event):
-        # """this will be called whenever mouse button is released"""
-        # pass
+    def release(self, event):
+        """this will be called whenever mouse button is released"""
+        pass
 
-    # def release_pan(self, event):
-        # """the release mouse button callback in pan/zoom mode"""
+    def release_pan(self, event):
+        """the release mouse button callback in pan/zoom mode"""
 
-        # if self._button_pressed is None:
-            # return
-        # self.canvas.mpl_disconnect(self._idDrag)
-        # self._idDrag = self.canvas.mpl_connect(
-            # 'motion_notify_event', self.mouse_move)
-        # for a, ind in self._xypress:
-            # a.end_pan()
-        # if not self._xypress:
-            # return
-        # self._xypress = []
-        # self._button_pressed = None
-        # self.push_current()
-        # self.release(event)
-        # self.draw()
+        if self._button_pressed is None:
+            return
+        self.canvas.mpl_disconnect(self._idDrag)
+        self._idDrag = self.canvas.mpl_connect(
+            'motion_notify_event', self.mouse_move)
+        for a, ind in self._xypress:
+            a.end_pan()
+        if not self._xypress:
+            return
+        self._xypress = []
+        self._button_pressed = None
+        self.push_current()
+        self.release(event)
+        self.draw()
 
-    # def drag_pan(self, event):
-        # """the drag callback in pan/zoom mode"""
+    def drag_pan(self, event):
+        """the drag callback in pan/zoom mode"""
 
-        # for a, ind in self._xypress:
-            # #safer to use the recorded button at the press than current button:
-            # #multiple button can get pressed during motion...
-            # a.drag_pan(self._button_pressed, event.key, event.x, event.y)
-        # self.dynamic_update()
+        for a, ind in self._xypress:
+            #safer to use the recorded button at the press than current button:
+            #multiple button can get pressed during motion...
+            a.drag_pan(self._button_pressed, event.key, event.x, event.y)
+        self.dynamic_update()
 
     # def drag_zoom(self, event):
         # """the drag callback in zoom mode"""
@@ -929,8 +934,8 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
 
         # self.set_message(self.mode)
 
-    # def set_history_buttons(self):
-        # """Enable or disable back/forward button"""
-        # pass
+    def set_history_buttons(self):
+        """Enable or disable back/forward button"""
+        pass
         
 FigureCanvasQTAgg = FigureCanvasQtQuickAgg
