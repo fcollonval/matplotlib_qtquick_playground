@@ -15,13 +15,15 @@ from PyQt5 import QtCore, QtGui, QtQuick, QtWidgets
 DEBUG = True
 
 class MatplotlibIconProvider(QtQuick.QQuickImageProvider):
+    """ This class provide the matplotlib icons for the navigation toolbar.
+    """
 
     def __init__(self, img_type = QtQuick.QQuickImageProvider.Pixmap):
         self.basedir = os.path.join(matplotlib.rcParams['datapath'], 'images')
         QtQuick.QQuickImageProvider.__init__(self, img_type)
 
     def requestImage(self, id, size):
-        img = QtGui.QImage(os.path.join(self.basedir, id + '.svg'))
+        img = QtGui.QImage(os.path.join(self.basedir, id + '.ppm'))
         size = img.size()
         return img, size
         
