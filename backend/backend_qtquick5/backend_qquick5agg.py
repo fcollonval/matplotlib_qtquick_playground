@@ -32,19 +32,26 @@ class MatplotlibIconProvider(QtQuick.QQuickImageProvider):
         return pixmap, size
 
 class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
+    """ This class creates a QtQuick Item encapsulating a Matplotlib
+        Figure and all the functions to interact with the 'standard'
+        Matplotlib navigation toolbar.
+    """
+
     # map Qt button codes to MouseEvent's ones:
-    buttond = {QtCore.Qt.LeftButton: 1,
-               QtCore.Qt.MidButton: 2,
-               QtCore.Qt.RightButton: 3,
-               # QtCore.Qt.XButton1: None,
-               # QtCore.Qt.XButton2: None,
-               }
+    buttond = {
+        QtCore.Qt.LeftButton: 1,
+        QtCore.Qt.MidButton: 2,
+        QtCore.Qt.RightButton: 3,
+        # QtCore.Qt.XButton1: None,
+        # QtCore.Qt.XButton2: None,
+    }
+    
     cursord = {
         cursors.MOVE: QtCore.Qt.SizeAllCursor,
         cursors.HAND: QtCore.Qt.PointingHandCursor,
         cursors.POINTER: QtCore.Qt.ArrowCursor,
         cursors.SELECT_REGION: QtCore.Qt.CrossCursor,
-        }
+    }
                
     messageChanged = QtCore.pyqtSignal(str)
 
@@ -55,21 +62,13 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
         if figure is None:
             figure = Figure((6.0, 4.0))
 
-        # NB: Using super for this call to avoid a TypeError:
-        # __init__() takes exactly 2 arguments (1 given) on QWidget
-        # PyQt5
-        # The need for this change is documented here
-        # http://pyqt.sourceforge.net/Docs/PyQt5/pyqt4_differences.html#cooperative-multi-inheritance
-        # super(FigureCanvasQtQuickAgg, self).__init__(figure=figure, parent=parent)
         QtQuick.QQuickPaintedItem.__init__(self, parent=parent)
         FigureCanvasAgg.__init__(self, figure=figure)
 
         self._drawRect = None
         self.blitbox = None
         
-        # self.figure = figure
-        
-        # Activate hover events, !! mouse move event are replaced by hover move in QtQuick
+        # Activate hover events and mouse press events
         self.setAcceptHoverEvents(True)
         self.setAcceptedMouseButtons(QtCore.Qt.AllButtons)
         
@@ -164,7 +163,6 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
         self._drawRect = rect
         self.update()
 
-    # def paintEvent(self, e):
     def paint(self, p):
         """
         Copy the image from the Agg canvas to the qt.drawable.
@@ -209,9 +207,6 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
                 p.setPen(QtGui.QPen(QtCore.Qt.black, 1, QtCore.Qt.DotLine))
                 x, y, w, h = self._drawRect
                 p.drawRect(x, y, w, h)
-            
-            # if p.isActive():
-                # p.end()
 
         else:
             bbox = self.blitbox
@@ -233,8 +228,6 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
                 x, y, w, h = self._drawRect
                 p.drawRect(x, y, w, h)
             
-            # if p.isActive():
-                # p.end()
             self.blitbox = None
 
     def draw(self):
@@ -285,17 +278,24 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
         l, b, w, h = bbox.bounds
         t = b + h
         self.repaint(l, self.renderer.height-t, w, h)       
-    
-    @QtCore.pyqtSlot(str)
-    def print_figure(self, fname, *args, **kwargs):
-        if fname:
-            fname = QtCore.QUrl(fname).toLocalFile()
-            # save dir for next time
-            savefig_dir = os.path.dirname(six.text_type(fname))
-            matplotlib.rcParams['savefig.directory'] = savefig_dir
-            fname = six.text_type(fname)
-        FigureCanvasAgg.print_figure(self, fname, *args, **kwargs)
-        self.draw()
+
+    def geometryChanged(self, new_geometry, old_geometry):
+        w = new_geometry.width()
+        h = new_geometry.height()
+        
+        if (w <= 0.0) and (h <= 0.0):
+            return
+            
+        if DEBUG:
+            print('resize (%d x %d)' % (w, h))
+            print("FigureCanvasQtQuickAgg.geometryChanged(%d, %d)" % (w, h))
+        dpival = self.figure.dpi
+        winch = w / dpival
+        hinch = h / dpival
+        self.figure.set_size_inches(winch, hinch)
+        FigureCanvasAgg.resize_event(self)
+        self.draw_idle()
+        QtQuick.QQuickPaintedItem.geometryChanged(self, new_geometry, old_geometry)
         
     def hoverEnterEvent(self, event):
         FigureCanvasAgg.enter_notify_event(self, guiEvent=event)
@@ -303,29 +303,6 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
     def hoverLeaveEvent(self, event):
         QtWidgets.QApplication.restoreOverrideCursor()
         FigureCanvasAgg.leave_notify_event(self, guiEvent=event)
-
-    def mousePressEvent(self, event):
-        x = event.pos().x()
-        # flipy so y=0 is bottom of canvas
-        y = self.figure.bbox.height - event.pos().y()
-        button = self.buttond.get(event.button())
-        if button is not None:
-            FigureCanvasAgg.button_press_event(self, x, y, button,
-                                                guiEvent=event)
-        if DEBUG:
-            print('button pressed:', event.button())
-
-    def mouseDoubleClickEvent(self, event):
-        x = event.pos().x()
-        # flipy so y=0 is bottom of canvas
-        y = self.figure.bbox.height - event.pos().y()
-        button = self.buttond.get(event.button())
-        if button is not None:
-            FigureCanvasAgg.button_press_event(self, x, y,
-                                                button, dblclick=True,
-                                                guiEvent=event)
-        if DEBUG:
-            print('button doubleclicked:', event.button())
 
     def hoverMoveEvent(self, event):
         x = event.pos().x()
@@ -374,6 +351,17 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
         else:
             self.message = self.mode
 
+    def mousePressEvent(self, event):
+        x = event.pos().x()
+        # flipy so y=0 is bottom of canvas
+        y = self.figure.bbox.height - event.pos().y()
+        button = self.buttond.get(event.button())
+        if button is not None:
+            FigureCanvasAgg.button_press_event(self, x, y, button,
+                                                guiEvent=event)
+        if DEBUG:
+            print('button pressed:', event.button())
+
     def mouseReleaseEvent(self, event):
         x = event.x()
         # flipy so y=0 is bottom of canvas
@@ -384,6 +372,18 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
                                                   guiEvent=event)
         if DEBUG:
             print('button released')
+
+    def mouseDoubleClickEvent(self, event):
+        x = event.pos().x()
+        # flipy so y=0 is bottom of canvas
+        y = self.figure.bbox.height - event.pos().y()
+        button = self.buttond.get(event.button())
+        if button is not None:
+            FigureCanvasAgg.button_press_event(self, x, y,
+                                                button, dblclick=True,
+                                                guiEvent=event)
+        if DEBUG:
+            print('button doubleclicked:', event.button())
 
     def wheelEvent(self, event):
         x = event.x()
@@ -416,34 +416,6 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
         FigureCanvasAgg.key_release_event(self, key, guiEvent=event)
         if DEBUG:
             print('key release', key)
-
-    # def resizeEvent(self, event):
-    def geometryChanged(self, new_geometry, old_geometry):
-        w = new_geometry.width()
-        h = new_geometry.height()
-        
-        if (w <= 0.0) and (h <= 0.0):
-            return
-            
-        if DEBUG:
-            print('resize (%d x %d)' % (w, h))
-            print("FigureCanvasQtQuickAgg.geometryChanged(%d, %d)" % (w, h))
-        dpival = self.figure.dpi
-        winch = w / dpival
-        hinch = h / dpival
-        self.figure.set_size_inches(winch, hinch)
-        FigureCanvasAgg.resize_event(self)
-        self.draw_idle()
-        QtQuick.QQuickPaintedItem.geometryChanged(self, new_geometry, old_geometry)
-
-    # # Absent of QQuickItem
-    # def sizeHint(self):
-        # w, h = self.get_width_height()
-        # return QtCore.QSize(w, h)
-        
-    # # Absent of QQuickItem
-    # def minumumSizeHint(self):
-        # return QtCore.QSize(10, 10)
 
     def _get_key(self, event):
         if event.isAutoRepeat():
@@ -497,8 +469,7 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
         *callbacks*
             Sequence of (func, args, kwargs) where func(*args, **kwargs)
             will be executed by the timer every *interval*.
-
-    """
+        """
         return TimerQT(*args, **kwargs)
 
     def flush_events(self):
@@ -515,13 +486,6 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
         FigureCanvasAgg.stop_event_loop_default(self)
 
     stop_event_loop.__doc__ = FigureCanvasAgg.stop_event_loop_default.__doc__
-    
-    #
-    # Navigation actions from NavigationToolbar2
-    #
-    # def set_message(self, s):
-        # """Display a message on toolbar or in status bar"""
-        # self.message = s
 
     def dynamic_update(self):
         self.canvas.draw_idle()
@@ -551,6 +515,25 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
         """Enable or disable back/forward button"""
         pass
 
+    def _update_view(self):
+        """Update the viewlim and position from the view and
+        position stack for each axes
+        """
+
+        views = self._views()
+        if views is None:
+            return
+        pos = self._positions()
+        if pos is None:
+            return
+        for i, a in enumerate(self.canvas.figure.get_axes()):
+            a._set_view(views[i])
+            # Restore both the original and modified positions
+            a.set_position(pos[i][0], 'original')
+            a.set_position(pos[i][1], 'active')
+
+        self.canvas.draw_idle()
+
     @QtCore.pyqtSlot()
     def home(self, *args):
         """Restore the original view"""
@@ -575,28 +558,6 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
         self.set_history_buttons()
         self._update_view()
 
-    # # def _init_toolbar(self):
-        # # """
-        # # This is where you actually build the GUI widgets (called by
-        # # __init__).  The icons ``home.xpm``, ``back.xpm``, ``forward.xpm``,
-        # # ``hand.xpm``, ``zoom_to_rect.xpm`` and ``filesave.xpm`` are standard
-        # # across backends (there are ppm versions in CVS also).
-
-        # # You just need to set the callbacks
-
-        # # home         : self.home
-        # # back         : self.back
-        # # forward      : self.forward
-        # # hand         : self.pan
-        # # zoom_to_rect : self.zoom
-        # # filesave     : self.save_figure
-
-        # # You only need to define the last one - the others are in the base
-        # # class implementation.
-
-        # # """
-        # # raise NotImplementedError
-
     def _set_cursor(self, event):
         if not event.inaxes or not self._active:
             if self._lastCursor != cursors.POINTER:
@@ -613,38 +574,31 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
 
                 self._lastCursor = cursors.MOVE
 
-    @QtCore.pyqtSlot()
-    def pan(self, *args):
-        """Activate the pan/zoom tool. pan with left button, zoom with right"""
-        # set the pointer icon and button press funcs to the
-        # appropriate callbacks
+    def set_cursor(self, cursor):
+        """
+        Set the current cursor to one of the :class:`Cursors`
+        enums values
+        """
+        if DEBUG:
+            print('Set cursor', cursor)
+        self.canvas.setCursor(self.cursord[cursor])
 
-        if self._active == 'PAN':
-            self._active = None
-        else:
-            self._active = 'PAN'
-        if self._idPress is not None:
-            self._idPress = self.canvas.mpl_disconnect(self._idPress)
-            self.mode = ''
-
-        if self._idRelease is not None:
-            self._idRelease = self.canvas.mpl_disconnect(self._idRelease)
-            self.mode = ''
-
-        if self._active:
-            self._idPress = self.canvas.mpl_connect(
-                'button_press_event', self.press_pan)
-            self._idRelease = self.canvas.mpl_connect(
-                'button_release_event', self.release_pan)
-            self.mode = 'pan/zoom'
-            self.canvas.widgetlock(self)
-        else:
-            self.canvas.widgetlock.release(self)
-
+    def draw_with_locators_update(self):
+        """Redraw the canvases, update the locators"""
         for a in self.canvas.figure.get_axes():
-            a.set_navigate_mode(self._active)
+            xaxis = getattr(a, 'xaxis', None)
+            yaxis = getattr(a, 'yaxis', None)
+            locators = []
+            if xaxis is not None:
+                locators.append(xaxis.get_major_locator())
+                locators.append(xaxis.get_minor_locator())
+            if yaxis is not None:
+                locators.append(yaxis.get_major_locator())
+                locators.append(yaxis.get_minor_locator())
 
-        self.message = self.mode
+            for loc in locators:
+                loc.refresh()
+        self.canvas.draw_idle()
 
     def press(self, event):
         """Called whenever a mouse button is pressed."""
@@ -699,7 +653,7 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
         self._button_pressed = None
         self.push_current()
         self.release(event)
-        self.draw()
+        self.draw_with_locators_update()
 
     def drag_pan(self, event):
         """the drag callback in pan/zoom mode"""
@@ -710,57 +664,38 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
             a.drag_pan(self._button_pressed, event.key, event.x, event.y)
         self.dynamic_update()
 
-    # # # Probably never used
-    # # def draw(self):
-        # # """Redraw the canvases, update the locators"""
-        # # for a in self.canvas.figure.get_axes():
-            # # xaxis = getattr(a, 'xaxis', None)
-            # # yaxis = getattr(a, 'yaxis', None)
-            # # locators = []
-            # # if xaxis is not None:
-                # # locators.append(xaxis.get_major_locator())
-                # # locators.append(xaxis.get_minor_locator())
-            # # if yaxis is not None:
-                # # locators.append(yaxis.get_major_locator())
-                # # locators.append(yaxis.get_minor_locator())
+    @QtCore.pyqtSlot()
+    def pan(self, *args):
+        """Activate the pan/zoom tool. pan with left button, zoom with right"""
+        # set the pointer icon and button press funcs to the
+        # appropriate callbacks
 
-            # # for loc in locators:
-                # # loc.refresh()
-        # # self.canvas.draw_idle()
+        if self._active == 'PAN':
+            self._active = None
+        else:
+            self._active = 'PAN'
+        if self._idPress is not None:
+            self._idPress = self.canvas.mpl_disconnect(self._idPress)
+            self.mode = ''
 
-    def _update_view(self):
-        """Update the viewlim and position from the view and
-        position stack for each axes
-        """
+        if self._idRelease is not None:
+            self._idRelease = self.canvas.mpl_disconnect(self._idRelease)
+            self.mode = ''
 
-        views = self._views()
-        if views is None:
-            return
-        pos = self._positions()
-        if pos is None:
-            return
-        for i, a in enumerate(self.canvas.figure.get_axes()):
-            a._set_view(views[i])
-            # Restore both the original and modified positions
-            a.set_position(pos[i][0], 'original')
-            a.set_position(pos[i][1], 'active')
+        if self._active:
+            self._idPress = self.canvas.mpl_connect(
+                'button_press_event', self.press_pan)
+            self._idRelease = self.canvas.mpl_connect(
+                'button_release_event', self.release_pan)
+            self.mode = 'pan/zoom'
+            self.canvas.widgetlock(self)
+        else:
+            self.canvas.widgetlock.release(self)
 
-        self.canvas.draw_idle()
+        for a in self.canvas.figure.get_axes():
+            a.set_navigate_mode(self._active)
 
-    def set_cursor(self, cursor):
-        """
-        Set the current cursor to one of the :class:`Cursors`
-        enums values
-        """
-        if DEBUG:
-            print('Set cursor', cursor)
-        self.canvas.setCursor(self.cursord[cursor])
-
-    # def update(self):
-        # """Reset the axes stack"""
-        # self._views.clear()
-        # self._positions.clear()
-        # self.set_history_buttons()
+        self.message = self.mode
 
     def draw_rubberband(self, event, x0, y0, x1, y1):
         """Draw a rectangle rubberband to indicate zoom limits"""
@@ -815,7 +750,7 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
             for zoom_id in self._ids_zoom:
                 self.canvas.mpl_disconnect(zoom_id)
             self.release(event)
-            self.draw()
+            self.draw_with_locators_update()
             self._xypress = None
             self._button_pressed = None
             self._ids_zoom = []
@@ -875,7 +810,7 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
                     (abs(y - lasty) < 5 and self._zoom_mode!="x")):
                 self._xypress = None
                 self.release(event)
-                self.draw()
+                self.draw_with_locators_update()
                 return
 
             # detect twinx,y axes and avoid double zooming
@@ -898,7 +833,7 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
             a._set_view_from_bbox((lastx, lasty, x, y), direction,
                                   self._zoom_mode, twinx, twiny)
 
-        self.draw()
+        self.draw_with_locators_update()
         self._xypress = None
         self._button_pressed = None
 
@@ -937,5 +872,16 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
             a.set_navigate_mode(self._active)
 
         self.message = self.mode
+    
+    @QtCore.pyqtSlot(str)
+    def print_figure(self, fname, *args, **kwargs):
+        if fname:
+            fname = QtCore.QUrl(fname).toLocalFile()
+            # save dir for next time
+            savefig_dir = os.path.dirname(six.text_type(fname))
+            matplotlib.rcParams['savefig.directory'] = savefig_dir
+            fname = six.text_type(fname)
+        FigureCanvasAgg.print_figure(self, fname, *args, **kwargs)
+        self.draw()
         
 FigureCanvasQTAgg = FigureCanvasQtQuickAgg
