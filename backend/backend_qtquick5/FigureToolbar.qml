@@ -16,7 +16,7 @@ Item{
         FigureCanvas {
             id: mplView
             objectName : "figure"
-            
+                        
             Layout.fillWidth: true
             Layout.fillHeight: true
             
@@ -110,6 +110,7 @@ Item{
                     checkable: true
                     
                     onClicked: {
+//                        mplView.pan()
                     }
                 }     
                 
@@ -164,7 +165,7 @@ Item{
                     
                     Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                     
-                    text: ""
+                    text: mplView.message
                 }
             }
         }

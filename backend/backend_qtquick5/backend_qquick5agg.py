@@ -5,11 +5,12 @@ import traceback
 
 import matplotlib
 from matplotlib.backends.backend_agg import FigureCanvasAgg
+from matplotlib.backend_bases import cursors
 from matplotlib.figure import Figure
 
 from matplotlib.externals import six
 
-from PyQt5 import QtCore, QtGui, QtQuick
+from PyQt5 import QtCore, QtGui, QtQuick, QtWidgets
 
 DEBUG = True
 
@@ -38,6 +39,14 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
                # QtCore.Qt.XButton1: None,
                # QtCore.Qt.XButton2: None,
                }
+    cursord = {
+        cursors.MOVE: QtCore.Qt.SizeAllCursor,
+        cursors.HAND: QtCore.Qt.PointingHandCursor,
+        cursors.POINTER: QtCore.Qt.ArrowCursor,
+        cursors.SELECT_REGION: QtCore.Qt.CrossCursor,
+        }
+               
+    messageChanged = QtCore.pyqtSignal(str)
 
     def __init__(self, figure, parent=None, coordinates=True):
         if DEBUG:
@@ -60,43 +69,90 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
         
         # self.figure = figure
         
-        # TODO need maybe to use self.grabMouse() of QQuickItem to emulate
-        # the same effect
-        # self.setMouseTracking(True)
+        # Activate hover events, !! mouse move event are replaced by hover move in QtQuick
+        self.setAcceptHoverEvents(True)
+        self.setAcceptedMouseButtons(QtCore.Qt.AllButtons)
         
         self._agg_draw_pending = False
         
+        self._message = ""
         #
         # Attributes from NavigationToolbar2QT
         #
-        # self.coordinates = coordinates
-        # self._actions = {}
+        self.coordinates = coordinates
+        self._actions = {}
         #
         # Attributes from NavigationToolbar2
         #
         self.canvas = self.figure.canvas
         self.toolbar = self
-        # # a dict from axes index to a list of view limits
-        # self._views = matplotlib.cbook.Stack()
-        # self._positions = matplotlib.cbook.Stack()  # stack of subplot positions
-        # self._xypress = None  # the location and axis info at the time
-                              # # of the press
-        # self._idPress = None
-        # self._idRelease = None
-        # self._active = None
-        # self._lastCursor = None
+        # a dict from axes index to a list of view limits
+        self._views = matplotlib.cbook.Stack()
+        self._positions = matplotlib.cbook.Stack()  # stack of subplot positions
+        self._xypress = None  # the location and axis info at the time
+                              # of the press
+        self._idPress = None
+        self._idRelease = None
+        self._active = None
+        self._lastCursor = None
         
-        # self._idDrag = self.canvas.mpl_connect(
-            # 'motion_notify_event', self.mouse_move)
+        self._idDrag = self.canvas.mpl_connect(
+            'motion_notify_event', self.mouse_move)
 
-        # self._ids_zoom = []
-        # self._zoom_mode = None
+        self._ids_zoom = []
+        self._zoom_mode = None
 
-        # self._button_pressed = None  # determined by the button pressed
-                                     # # at start
+        self._button_pressed = None  # determined by the button pressed
+                                     # at start
 
-        # self.mode = ''  # a mode string for the status bar
+        self.mode = ''  # a mode string for the status bar
         # self.set_history_buttons()
+    
+    @QtCore.pyqtProperty('QString', notify=messageChanged)
+    def message(self):
+        return self._message
+    
+    @message.setter
+    def message(self, msg):
+        if msg != self._message:
+            self._message = msg
+            self.messageChanged.emit(msg)
+    
+    @QtCore.pyqtProperty('QString', constant=True)
+    def defaultDirectory(self):
+        startpath = matplotlib.rcParams.get('savefig.directory', '')
+        return os.path.expanduser(startpath)
+    
+    @QtCore.pyqtProperty('QStringList', constant=True)
+    def fileFilters(self):
+        filetypes = self.canvas.get_supported_filetypes_grouped()
+        sorted_filetypes = list(six.iteritems(filetypes))
+        sorted_filetypes.sort()
+        
+        filters = []
+        for name, exts in sorted_filetypes:
+            exts_list = " ".join(['*.%s' % ext for ext in exts])
+            filter = '%s (%s)' % (name, exts_list)
+            filters.append(filter)
+        
+        return filters
+
+    @QtCore.pyqtProperty('QString', constant=True)
+    def defaultFileFilter(self):        
+        default_filetype = self.canvas.get_default_filetype()
+        
+        selectedFilter = None
+        for filter in self.fileFilters:
+            exts = filter.split('(', maxsplit=1)[1]
+            exts = exts[:-1].split()
+            if default_filetype in exts:
+                selectedFilter = filter
+                break
+        
+        if selectedFilter is None:
+            selectedFilter = self.fileFilters[0]
+                
+        return selectedFilter
 
     def getFigure(self):
         return self.figure
@@ -227,42 +283,6 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
         t = b + h
         self.repaint(l, self.renderer.height-t, w, h)       
     
-    @QtCore.pyqtProperty('QString', constant=True)
-    def defaultDirectory(self):
-        startpath = matplotlib.rcParams.get('savefig.directory', '')
-        return os.path.expanduser(startpath)
-    
-    @QtCore.pyqtProperty('QStringList', constant=True)
-    def fileFilters(self):
-        filetypes = self.canvas.get_supported_filetypes_grouped()
-        sorted_filetypes = list(six.iteritems(filetypes))
-        sorted_filetypes.sort()
-        
-        filters = []
-        for name, exts in sorted_filetypes:
-            exts_list = " ".join(['*.%s' % ext for ext in exts])
-            filter = '%s (%s)' % (name, exts_list)
-            filters.append(filter)
-        
-        return filters
-
-    @QtCore.pyqtProperty('QString', constant=True)
-    def defaultFileFilter(self):        
-        default_filetype = self.canvas.get_default_filetype()
-        
-        selectedFilter = None
-        for filter in self.fileFilters:
-            exts = filter.split('(', maxsplit=1)[1]
-            exts = exts[:-1].split()
-            if default_filetype in exts:
-                selectedFilter = filter
-                break
-        
-        if selectedFilter is None:
-            selectedFilter = self.fileFilters[0]
-                
-        return selectedFilter
-    
     @QtCore.pyqtSlot(str)
     def print_figure(self, fname, *args, **kwargs):
         if fname:
@@ -278,7 +298,7 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
         FigureCanvasAgg.enter_notify_event(self, guiEvent=event)
 
     def hoverLeaveEvent(self, event):
-        QtGui.QApplication.restoreOverrideCursor()
+        QtWidgets.QApplication.restoreOverrideCursor()
         FigureCanvasAgg.leave_notify_event(self, guiEvent=event)
 
     def mousePressEvent(self, event):
@@ -304,12 +324,50 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
         if DEBUG:
             print('button doubleclicked:', event.button())
 
-    def mouseMoveEvent(self, event):
-        x = event.x()
+    def hoverMoveEvent(self, event):
+        x = event.pos().x()
         # flipy so y=0 is bottom of canvas
-        y = self.figure.bbox.height - event.y()
+        y = self.figure.bbox.height - event.pos().y()
         FigureCanvasAgg.motion_notify_event(self, x, y, guiEvent=event)
+        
+        # if DEBUG: 
+            # print('hover move')
+
+    # Replace by hoverMoveEvent in QtQuick
+    # def mouseMoveEvent(self, event):
+        # x = event.x()
+        # # flipy so y=0 is bottom of canvas
+        # y = self.figure.bbox.height - event.y()
+        # FigureCanvasAgg.motion_notify_event(self, x, y, guiEvent=event)
         # if DEBUG: print('mouse move')
+
+    def mouse_move(self, event):
+        self._set_cursor(event)
+
+        if event.inaxes and event.inaxes.get_navigate():
+
+            try:
+                s = event.inaxes.format_coord(event.xdata, event.ydata)
+            except (ValueError, OverflowError):
+                pass
+            else:
+                artists = [a for a in event.inaxes.mouseover_set
+                           if a.contains(event)]
+
+                if artists:
+
+                    a = max(enumerate(artists), key=lambda x: x[1].zorder)[1]
+                    if a is not event.inaxes.patch:
+                        data = a.get_cursor_data(event)
+                        if data is not None:
+                            s += ' [{:s}]'.format(a.format_cursor_data(data))
+
+                if len(self.mode):
+                    self.message = '{:s}, {:s}'.format(self.mode, s)
+                else:
+                    self.message = s
+        else:
+            self.message = self.mode
 
     def mouseReleaseEvent(self, event):
         x = event.x()
@@ -335,8 +393,8 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
         if steps != 0:
             FigureCanvasAgg.scroll_event(self, x, y, steps, guiEvent=event)
             if DEBUG:
-                print('scroll event: delta = %i, '
-                      'steps = %i ' % (event.delta(), steps))
+                print('scroll event: '
+                      'steps = %i ' % (steps))
 
     def keyPressEvent(self, event):
         key = self._get_key(event)
@@ -458,9 +516,7 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
     #
     # def set_message(self, s):
         # """Display a message on toolbar or in status bar"""
-        # self.message.emit(s)
-        # if self.coordinates:
-            # self.locLabel.setText(s)
+        # self.message = s
 
     # @QtCore.pyqtSlot()
     # def back(self, *args):
@@ -534,49 +590,21 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
         # # """
         # # raise NotImplementedError
 
-    # def _set_cursor(self, event):
-        # if not event.inaxes or not self._active:
-            # if self._lastCursor != cursors.POINTER:
-                # self.set_cursor(cursors.POINTER)
-                # self._lastCursor = cursors.POINTER
-        # else:
-            # if self._active == 'ZOOM':
-                # if self._lastCursor != cursors.SELECT_REGION:
-                    # self.set_cursor(cursors.SELECT_REGION)
-                    # self._lastCursor = cursors.SELECT_REGION
-            # elif (self._active == 'PAN' and
-                  # self._lastCursor != cursors.MOVE):
-                # self.set_cursor(cursors.MOVE)
+    def _set_cursor(self, event):
+        if not event.inaxes or not self._active:
+            if self._lastCursor != cursors.POINTER:
+                self.set_cursor(cursors.POINTER)
+                self._lastCursor = cursors.POINTER
+        else:
+            if self._active == 'ZOOM':
+                if self._lastCursor != cursors.SELECT_REGION:
+                    self.set_cursor(cursors.SELECT_REGION)
+                    self._lastCursor = cursors.SELECT_REGION
+            elif (self._active == 'PAN' and
+                  self._lastCursor != cursors.MOVE):
+                self.set_cursor(cursors.MOVE)
 
-                # self._lastCursor = cursors.MOVE
-
-    # def mouse_move(self, event):
-        # self._set_cursor(event)
-
-        # if event.inaxes and event.inaxes.get_navigate():
-
-            # try:
-                # s = event.inaxes.format_coord(event.xdata, event.ydata)
-            # except (ValueError, OverflowError):
-                # pass
-            # else:
-                # artists = [a for a in event.inaxes.mouseover_set
-                           # if a.contains(event)]
-
-                # if artists:
-
-                    # a = max(enumerate(artists), key=lambda x: x[1].zorder)[1]
-                    # if a is not event.inaxes.patch:
-                        # data = a.get_cursor_data(event)
-                        # if data is not None:
-                            # s += ' [%s]' % a.format_cursor_data(data)
-
-                # if len(self.mode):
-                    # self.set_message('%s, %s' % (self.mode, s))
-                # else:
-                    # self.set_message(s)
-        # else:
-            # self.set_message(self.mode)
+                self._lastCursor = cursors.MOVE
 
     # @QtCore.pyqtSlot()
     # def pan(self, *args):
@@ -609,7 +637,7 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
         # for a in self.canvas.figure.get_axes():
             # a.set_navigate_mode(self._active)
 
-        # self.set_message(self.mode)
+        # self.message = self.mode
 
     # def press(self, event):
         # """Called whenver a mouse button is pressed."""
@@ -855,14 +883,14 @@ class FigureCanvasQtQuickAgg(QtQuick.QQuickPaintedItem, FigureCanvasAgg):
 
         # self.canvas.draw_idle()
 
-    # def set_cursor(self, cursor):
-        # """
-        # Set the current cursor to one of the :class:`Cursors`
-        # enums values
-        # """
-        # if DEBUG:
-            # print('Set cursor', cursor)
-        # self.canvas.setCursor(cursord[cursor])
+    def set_cursor(self, cursor):
+        """
+        Set the current cursor to one of the :class:`Cursors`
+        enums values
+        """
+        if DEBUG:
+            print('Set cursor', cursor)
+        self.canvas.setCursor(self.cursord[cursor])
 
     # def update(self):
         # """Reset the axes stack"""
