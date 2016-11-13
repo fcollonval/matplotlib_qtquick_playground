@@ -51,7 +51,6 @@ def main():
     
     win = view.rootObject()
     fig = win.findChild(QObject, "figure").getFigure()
-    print(fig)
     ax = fig.add_subplot(111)
     x = np.linspace(-5, 5)
     ax.plot(x, np.sin(x))
