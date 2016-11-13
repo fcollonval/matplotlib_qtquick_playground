@@ -53,6 +53,7 @@ Item{
             id: toolbar
             
             Layout.alignment: Qt.AlignLeft | Qt.Bottom
+            Layout.fillWidth: true
         
             RowLayout {
                 Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
