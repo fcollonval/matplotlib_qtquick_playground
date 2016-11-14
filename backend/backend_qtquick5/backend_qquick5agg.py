@@ -23,7 +23,7 @@ class MatplotlibIconProvider(QtQuick.QQuickImageProvider):
         QtQuick.QQuickImageProvider.__init__(self, img_type)
 
     def requestImage(self, id, size):
-        img = QtGui.QImage(os.path.join(self.basedir, id + '.ppm'))
+        img = QtGui.QImage(os.path.join(self.basedir, id + '.png'))
         size = img.size()
         return img, size
         
