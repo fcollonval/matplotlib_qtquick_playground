@@ -23,7 +23,7 @@ from PyQt5.QtGui import QGuiApplication
 from PyQt5.QtQml import qmlRegisterType
 from PyQt5.QtQuick import QQuickView
 
-from backend_qtquick5 import FigureCanvasQTAgg, MatplotlibIconProvider
+from backend_qtquick5 import FigureCanvasQTAggToolbar, MatplotlibIconProvider
 
 import matplotlib
 # matplotlib.use('module://backend_qtquick5')
@@ -37,11 +37,9 @@ import numpy as np
 def main():
     argv = sys.argv
     
-    # Trick to set the style / not found how to do it in pythonic way
-    argv.extend(["-style", "universal"])
     app = QGuiApplication(argv)
     
-    qmlRegisterType(FigureCanvasQTAgg, "Backend", 1, 0, "FigureCanvas")
+    qmlRegisterType(FigureCanvasQTAggToolbar, "Backend", 1, 0, "FigureToolbar")
     
     imgProvider = MatplotlibIconProvider()
     view = QQuickView()

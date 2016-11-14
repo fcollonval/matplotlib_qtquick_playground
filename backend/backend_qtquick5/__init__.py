@@ -1,2 +1,2 @@
 
-from .backend_qquick5agg import FigureCanvasQTAgg, MatplotlibIconProvider
+from .backend_qquick5agg import FigureCanvasQTAgg, FigureCanvasQTAggToolbar, MatplotlibIconProvider

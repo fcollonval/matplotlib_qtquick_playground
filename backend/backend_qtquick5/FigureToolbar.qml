@@ -5,15 +5,14 @@ import Qt.labs.controls 1.0
 import QtQuick.Dialogs 1.2
 
 Item{           
-    width: 760
+    width: 640
     height: 480
 
     ColumnLayout {
         spacing : 0
-        anchors.fill: parent
-        
+        anchors.fill: parent        
 
-        FigureCanvas {
+        FigureToolbar {
             id: mplView
             objectName : "figure"
                         
