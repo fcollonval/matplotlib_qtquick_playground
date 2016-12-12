@@ -141,8 +141,8 @@ class Form(QObject):
     statusTextChanged = pyqtSignal()
     stateChanged = pyqtSignal()
 
-    def __init__(self, data=None):
-        QObject.__init__(self)
+    def __init__(self, parent=None, data=None):
+        QObject.__init__(self, parent)
         
         self._status_text = "Please load a data file"
         
@@ -182,7 +182,7 @@ class Form(QObject):
         if self._status_text != text:
             self._status_text = text
             self.statusTextChanged.emit()
-        
+
     @pyqtProperty('QString')
     def filename(self):
         return self._filename
@@ -293,7 +293,7 @@ def main():
     context = engine.rootContext()
     data_model = DataSeriesModel()
     context.setContextProperty("dataModel", data_model)
-    mainApp = Form(data_model)
+    mainApp = Form(data=data_model)
     context.setContextProperty("draw_mpl", mainApp)
     
     engine.load(QUrl('main.qml'))

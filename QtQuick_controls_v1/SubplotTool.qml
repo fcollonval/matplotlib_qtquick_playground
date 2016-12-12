@@ -4,7 +4,7 @@ import QtQuick.Controls 1.0
 import QtQuick.Dialogs 1.2
 
 Dialog {
-    id: subplottool
+    id: subplotTool
     
     title: "Margins & spacing"
     
@@ -156,10 +156,10 @@ Dialog {
                 id: tight_layout
                 text: "Tight Layout"
                 
-                Layout.alignment: Qt.AlignLeft | Qt.Alignbottom
+                Layout.alignment: Qt.AlignLeft | Qt.AlignBottom
                 
                 onClicked: {
-                    subplottool.tightLayout()
+                    subplotTool.tightLayout()
                 }
             }
             
@@ -174,7 +174,7 @@ Dialog {
                 Layout.alignment: Qt.AlignRight | Qt.AlignBottom
                 
                 onClicked: {
-                    subplottool.reset()
+                    subplotTool.reset()
                 }
             }
             
@@ -185,7 +185,7 @@ Dialog {
                 Layout.alignment: Qt.AlignRight | Qt.AlignBottom
                 
                 onClicked: {
-                    subplottool.close()
+                    subplotTool.close()
                 }
             }
         }
