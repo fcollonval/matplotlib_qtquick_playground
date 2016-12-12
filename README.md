@@ -8,12 +8,16 @@ Derivation of the example have been made based on the three following Qt technol
 - QtQuick Controls 2.0 (actually Qt.labs.controls 1.0 as I used PyQt 5.6)
 
 The goal of this work was to play around with QtQuick and PyQt5. The integration of matplotlib with QtWidgets is the best
-as a backend support full interactivity and navigation toolbar. The QtQuick alternative is crude (derivation of 
-QQuickImageProvider). The figure is rendered in background and feeds back as image to the UI.
+as a backend support full interactivity and navigation toolbar. A new matplotlib backend based on a QQuickItem has been
+created to restore maximal interactivity.
 
 The logic behind QtWidgets GUI and QtQuick is quite different. For example, in the former, the Python script takes care of
 reading all widgets before updating the figure. But in the latter, QtQuick controls are binded to Python properties that 
 emit signal forcing the figure to update.
+
+![QtWidgets version](./QtWidgets/QtWidgets_UI.PNG)
+![QtQuick Controls 1.0 version](./QtQuick_controls_v1/QtQuickControls1.PNG)
+![QtQuick Controls 2.0 version](./QtQuick_controls_v2/QtQuickControls2.PNG)
 
 Code functions
 ==============
