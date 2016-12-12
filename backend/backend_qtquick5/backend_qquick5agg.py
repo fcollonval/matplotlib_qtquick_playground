@@ -12,7 +12,7 @@ from matplotlib.externals import six
 
 from PyQt5 import QtCore, QtGui, QtQuick, QtWidgets
 
-DEBUG = True
+DEBUG = False
 
 class MatplotlibIconProvider(QtQuick.QQuickImageProvider):
     """ This class provide the matplotlib icons for the navigation toolbar.

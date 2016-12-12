@@ -32,6 +32,9 @@ import matplotlib.pyplot as plt
 
 import numpy as np
 
+sys.path.append('../backend')
+from backend_qtquick5 import FigureCanvasQTAggToolbar, MatplotlibIconProvider
+
 class DataSerie(object):
 
     def __init__(self, name, data, selected=False):
@@ -149,12 +152,27 @@ class Form(QObject):
         self._legend = False
         
         # default dpi=80, so size = (480, 320)
-        self.figure = plt.figure(figsize=(6.0, 4.0))
-        self.figure.set_facecolor('white')
-        self.axes = self.figure.add_subplot(111)
+        self._figure = None
+        self.axes = None
         
         self._data = data
 
+    @property
+    def figure(self):
+        return self._figure
+    
+    @figure.setter
+    def figure(self, fig):
+        self._figure = fig
+        self._figure.set_facecolor('white')
+        self.axes = self.figure.add_subplot(111)    
+        
+        # Signal connection
+        self.xFromChanged.connect(self._figure.canvas.draw_idle)
+        self.xToChanged.connect(self._figure.canvas.draw_idle)
+        self.legendChanged.connect(self._figure.canvas.draw_idle)
+        self.stateChanged.connect(self._figure.canvas.draw_idle)
+        
     @pyqtProperty('QString', notify=statusTextChanged)
     def statusText(self):
         return self._status_text
@@ -185,6 +203,9 @@ class Form(QObject):
     
     @xFrom.setter
     def xFrom(self, x_from):
+        if self.figure is None:
+            return
+            
         x_from = int(x_from)
         if self._x_from != x_from:
             self._x_from = x_from
@@ -197,6 +218,9 @@ class Form(QObject):
     
     @xTo.setter
     def xTo(self, x_to):
+        if self.figure is None:
+            return
+            
         x_to = int(x_to)
         if self._x_to != x_to:
             self._x_to = x_to
@@ -209,6 +233,9 @@ class Form(QObject):
     
     @legend.setter
     def legend(self, legend):
+        if self.figure is None:
+            return
+            
         if self._legend != legend:
             self._legend = legend
             if self._legend:
@@ -227,6 +254,9 @@ class Form(QObject):
     
     @pyqtSlot()
     def update_figure(self):
+        if self.figure is None:
+            return
+    
         self.axes.clear()
         self.axes.grid(True)
         
@@ -246,63 +276,30 @@ class Form(QObject):
         self.axes.set_xlim((self.xFrom, self.xTo))
         if has_series and self.legend:
             self.axes.legend()
-        # self.canvas.draw()
         
         self.stateChanged.emit()
-
-    # def create_status_bar(self):
-        # self.status_text = QLabel("Please load a data file")
-        # self.statusBar().addWidget(self.status_text, 1)
-
-class MatplotlibImageProvider(QQuickImageProvider):
-
-    def __init__(self, fig, img_type = QQuickImageProvider.Pixmap):
-        self._fig = fig
-        QQuickImageProvider.__init__(self, img_type)
-
-    def requestPixmap(self, id, size):    
-        width = 480
-        height = 320
-        
-        if size.width() > 0:
-            width = size.width()
-        if size.height() > 0:
-            height = size.height()
-    
-        size = QSize(width, height)
-        
-        def create_image(width, height):
-            dpi = self._fig.get_dpi()
-            self._fig.set_size_inches((width/dpi, height/dpi))
-            self._fig.canvas.draw()
-            width, height = self._fig.canvas.get_width_height()
-            img = self._fig.canvas.tostring_rgb()
-            img = np.fromstring(img, dtype=np.uint8).reshape(height, width, 3)
-            return img            
-        
-        img = create_image(size.width(), size.height())
-        width, height = img.shape[:2]        
-                
-        qimg = QImage(img, height, width, QImage.Format_RGB888)
-        pixmap = QPixmap.fromImage(qimg)
-        
-        return pixmap, size
         
         
 def main():
     app = QGuiApplication(sys.argv)
     
+    qmlRegisterType(FigureCanvasQTAggToolbar, "Backend", 1, 0, "FigureToolbar")
+    
+    imgProvider = MatplotlibIconProvider()
+    
     engine = QQmlApplicationEngine(parent=app)
+    engine.addImageProvider("mplIcons", imgProvider)
     
     context = engine.rootContext()
     data_model = DataSeriesModel()
     context.setContextProperty("dataModel", data_model)
     mainApp = Form(data_model)
-    # mainApp = Form()
     context.setContextProperty("draw_mpl", mainApp)
     
-    engine.addImageProvider("mplFigure", MatplotlibImageProvider(mainApp.figure))
     engine.load(QUrl('main.qml'))
+    
+    win = engine.rootObjects()[0]
+    mainApp.figure = win.findChild(QObject, "figure").getFigure()
     
     rc = app.exec_()
     sys.exit(rc)

@@ -1,6 +1,8 @@
+import Backend 1.0
 import QtQuick 2.6
 import QtQuick.Controls 1.5
 import QtQuick.Layouts 1.3
+import QtQuick.Dialogs 1.2
 
 Item {
     width: 640
@@ -13,31 +15,213 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.fill: parent
         
-        Image {
-            id: canvas_mpl
-            width: 480
-            height: 320
-            Layout.fillHeight: true
-            Layout.fillWidth: true
-            fillMode: Image.PreserveAspectFit
-            source: "image://mplFigure/figure"
-            cache: false
-        }
-        
-        Connections {
-            target: draw_mpl
-            onStateChanged: {
-                canvas_mpl.source = "image://mplFigure/figure?" + Math.random()
-                // change URL to refresh image. Add random URL part to avoid caching
+        ColumnLayout {
+            spacing : 0        
+
+            FigureToolbar {
+                id: mplView
+                objectName : "figure"
+                width : 480
+                height: 320
+                            
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                
+                Layout.minimumWidth: 10
+                Layout.minimumHeight: 10
             }
-            onXFromChanged: {
-                canvas_mpl.source = "image://mplFigure/figure?" + Math.random()
+            
+            MessageDialog {
+                id: messageDialog
             }
-            onXToChanged: {
-                canvas_mpl.source = "image://mplFigure/figure?" + Math.random()
+            
+            FileDialog {
+                id: saveFileDialog
+                title: "Choose a filename to save to"
+                folder: mplView.defaultDirectory
+                nameFilters: mplView.fileFilters
+                selectedNameFilter: mplView.defaultFileFilter
+                selectExisting: false
+                
+                onAccepted: {
+                    try{
+                        mplView.print_figure(fileUrl)
+                    }
+                    catch (error){
+                        messageDialog.title = "Error saving file"
+                        messageDialog.text = error
+                        messageDialog.icon = StandardIcon.Critical
+                        messageDialog.open()
+                    }
+                }
+            } 
+            
+            SubplotTool {
+                id: setMargin
+                
+                left.value: mplView.left
+                right.value: mplView.right
+                top.value: mplView.top
+                bottom.value: mplView.bottom
+                
+                hspace.value: mplView.hspace
+                wspace.value: mplView.wspace
+                
+                function initMargin() {
+                    // Init slider value
+                    setMargin.left.value = mplView.left
+                    setMargin.right.value = mplView.right
+                    setMargin.top.value = mplView.top
+                    setMargin.bottom.value = mplView.bottom
+                    
+                    setMargin.hspace.value = mplView.hspace
+                    setMargin.wspace.value = mplView.wspace
+                    
+                    // Invert parameter bindings
+                    mplView.left = Qt.binding(function() { return setMargin.left.value })
+                    mplView.right = Qt.binding(function() { return setMargin.right.value })
+                    mplView.top = Qt.binding(function() { return setMargin.top.value })
+                    mplView.bottom = Qt.binding(function() { return setMargin.bottom.value })
+                    
+                    mplView.hspace = Qt.binding(function() { return setMargin.hspace.value })
+                    mplView.wspace = Qt.binding(function() { return setMargin.wspace.value })
+                }
+                
+                onReset: {
+                    mplView.reset_margin()
+                    setMargin.initMargin()
+                }
+                
+                onTightLayout: {
+                    mplView.tight_layout()
+                    setMargin.initMargin()
+                }
             }
-            onLegendChanged: {
-                canvas_mpl.source = "image://mplFigure/figure?" + Math.random()
+            
+
+            ToolBar {
+                id: toolbar
+                
+                Layout.alignment: Qt.AlignLeft | Qt.Bottom
+                Layout.fillWidth: true
+            
+                RowLayout {
+                    Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+                    anchors.fill: parent
+                    
+                    ToolButton {
+                        id : home
+                        
+                        iconSource: "image://mplIcons/home"
+                        
+                        onClicked: {
+                            mplView.home()
+                        }
+                    }     
+                    
+                    ToolButton {
+                        id : back
+                        iconSource: "image://mplIcons/back"
+                        
+                        onClicked: {
+                            mplView.back()
+                        }
+                    }     
+                    
+                    ToolButton {
+                        id : forward
+                        
+                        iconSource: "image://mplIcons/forward"
+                        
+                        onClicked: {
+                            mplView.forward()
+                        }
+                    }     
+
+                    // Fake separator
+                    Label {
+                        text : "|"
+                    }                    
+                    
+                    
+                    ExclusiveGroup {
+                    // Gather pan and zoom tools to make them auto-exclusive
+                        id: pan_zoom
+                    }
+                    
+                    ToolButton {
+                        id : pan
+                        
+                        iconSource: "image://mplIcons/move"
+                        
+                        exclusiveGroup: pan_zoom
+                        checkable: true
+                        
+                        onClicked: {
+                            mplView.pan()
+                        }
+                    }     
+                    
+                    ToolButton {
+                        id : zoom
+                        
+                        iconSource: "image://mplIcons/zoom_to_rect"
+                        
+                        exclusiveGroup: pan_zoom
+                        checkable: true
+                        
+                        onClicked: {
+                            mplView.zoom()
+                        }
+                    }   
+
+                    Label {
+                        text : "|"
+                    }
+                    
+                    ToolButton {
+                        id : subplots
+                        iconSource: "image://mplIcons/subplots"
+                        
+                        onClicked: {
+                            setMargin.initMargin()
+                            setMargin.open()
+                        }
+                    }
+                    
+                    ToolButton {
+                        id : save
+                        
+                        iconSource: "image://mplIcons/filesave"
+                        
+                        onClicked: {
+                            saveFileDialog.open()
+                        }
+                    }   
+                    /*
+                    ToolButton {
+                        id : figureOptions
+                        
+                        iconSource: "image://mplIcons/qt4_editor_options"
+                        
+                        visible: mplView.figureOptions
+                        
+                        onClicked: {
+                        }
+                    }      
+                    */
+                    Item {
+                        Layout.fillWidth: true
+                    }
+                    
+                    Label{
+                        id: locLabel
+                        
+                        Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+                        
+                        text: mplView.message
+                    }
+                }
             }
         }
         
