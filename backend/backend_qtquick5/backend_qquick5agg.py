@@ -7,6 +7,7 @@ import matplotlib
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.backend_bases import cursors
 from matplotlib.figure import Figure
+from matplotlib.backends.backend_qt5 import TimerQT
 
 from matplotlib.externals import six
 
