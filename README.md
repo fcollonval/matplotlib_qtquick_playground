@@ -15,8 +15,16 @@ The logic behind QtWidgets GUI and QtQuick is quite different. For example, in t
 reading all widgets before updating the figure. But in the latter, QtQuick controls are binded to Python properties that 
 emit signal forcing the figure to update.
 
+## QtWidgets version
+
 ![QtWidgets version](./QtWidgets/QtWidgets_UI.PNG)
+
+## QtQuick Controls 1.0 version
+
 ![QtQuick Controls 1.0 version](./QtQuick_controls_v1/QtQuickControls1.PNG)
+
+## QtQuick Controls 2.0 version
+
 ![QtQuick Controls 2.0 version](./QtQuick_controls_v2/QtQuickControls2.PNG)
 
 Code functions
