@@ -9,8 +9,8 @@ import Qt.labs.controls.universal 1.0
 ApplicationWindow {
     id: root
     visible: true
-    width: 740
-    height: 380
+    width: 940
+    height: 500
     title: qsTr("Hello World")
     
     Material.theme : Material.Light
