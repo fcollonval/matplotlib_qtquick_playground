@@ -1,3 +1,5 @@
+:warning: **This project is archived as no longer maintained**
+
 # matplotlib_qtquick_playground
 Port of the example kindly provided by Eli Bendersky to PyQt5:
 https://github.com/eliben/code-for-blog/tree/master/2009/pyqt_dataplot_demo
